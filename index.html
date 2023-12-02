@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Forex Dashboard</title>
+    <!-- Include CSS styles here -->
+    <style>
+        .positive {
+            color: green;
+        }
+        .negative {
+            color: red;
+        }
+    </style>
+    <!-- Include Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <!-- List of Currencies with Rates and Changes -->
+    <div>
+        <h2>Currencies and Rates:</h2>
+        <table>
+            <tr>
+                <th>Currency</th>
+                <th>Exchange Rate</th>
+                <th>Change</th>
+            </tr>
+            {% for currency, rate in exchange_rates.items() %}
+            <tr>
+                <td>{{ currency_names[currency] }} ({{ currency }})</td>
+                <td>{{ rate }}</td>
+                <td class="{% if daily_changes[currency] >= 0 %}positive{% else %}negative{% endif %}">
+                    {{ daily_changes[currency]|round(2) }}%
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <!-- Alert for Significant Currency Movement -->
+<div>
+    {% if significant_movements %}
+        {% for currency, change in significant_movements.items() %}
+        <p class="{% if change >= 0 %}positive{% else %}negative{% endif %}">
+            Alert: Significant Movement - {{ currency_names[currency] }} ({{ currency }}): {{ change|round(2) }}%
+        </p>
+        {% endfor %}
+    {% else %}
+        <p>No significant movement.</p>
+    {% endif %}
+</div>
+
+
+    <!-- Form for Selecting Currencies and Displaying Graphs -->
+    <div>
+        <form action="/" method="post">
+            <label for="currency-select">Select Currency:</label>
+            <select name="currencies" id="currency-select" multiple>
+                {% for currency, name in currency_names.items() %}
+                <option value="{{ currency }}">{{ name }} ({{ currency }})</option>
+                {% endfor %}
+            </select>
+            <button type="submit">Show Graphs</button>
+        </form>
+    </div>
+
+    <!-- Graph Display -->
+    <div id="graphs-container">
+        <!-- Graphs will be rendered here by JavaScript -->
+    </div>
+
+    <!-- Hidden div to store graphs_json data -->
+    <div id="graphs-data" data-graphs="{{ graphs_json|tojson|safe }}" style="display: none;"></div>
+
+    <!-- Latest Currency News Section -->
+    <div>
+        <h2>Latest Currency News:</h2>
+        <a href="https://www.nytimes.com/topic/subject/currency" target="_blank">New York Times Currency News</a>
+    </div>
+
+    <!-- JavaScript to handle graph rendering -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var graphsDataElement = document.getElementById('graphs-data');
+            var graphsJsonString = graphsDataElement.getAttribute('data-graphs');
+            if (graphsJsonString) {
+                var graphs = JSON.parse(graphsJsonString);
+                var selectedCurrenciesJsonString = '{{ selected_currencies|tojson|safe }}';
+                if (selectedCurrenciesJsonString) {
+                    var selectedCurrencies = JSON.parse(selectedCurrenciesJsonString);
+                    Object.keys(graphs).forEach(function(currency) {
+                        if (selectedCurrencies.includes(currency)) {
+                            var graphDiv = document.createElement('div');
+                            graphDiv.id = 'graph-' + currency;
+                            document.getElementById('graphs-container').appendChild(graphDiv);
+                            Plotly.newPlot(graphDiv.id, graphs[currency].data, graphs[currency].layout);
+                        }
+                    });
+                }
+            }
+        });
+    </script>
+</body>
+</html>
